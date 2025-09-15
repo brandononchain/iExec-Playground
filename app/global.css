@@ -1,1 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0B0B0C;
+  --elev: #121214;
+  --fg: #FFFFFF;
+  --muted: #8B8D92;
+  --primary: #F5CA04;
+  --primary-50: #FEF7C9;
+  --border: #1C1C20;
+}
+
+html, body { background: var(--bg); color: var(--fg); }
+* { outline-color: var(--primary); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #222229; border-radius: 8px; }
 
