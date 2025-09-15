@@ -2,6 +2,7 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
+import RlcBalance from "./RlcBalance";
 
 function shortHash(addr?: string) {
   if (!addr) return "";
@@ -14,6 +15,7 @@ export function Topbar() {
     <header className="h-16 border-b border-border bg-elev/80 backdrop-blur flex items-center justify-between px-4">
       <h1 className="text-lg md:text-xl font-semibold">Confidential AI Playground</h1>
       <div className="flex items-center gap-3">
+        <RlcBalance />
         {isConnected && (
           <span className="hidden sm:inline text-sm text-muted">{shortHash(address)}</span>
         )}
