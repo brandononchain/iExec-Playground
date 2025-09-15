@@ -25,8 +25,8 @@ export function SideNav() {
             key={href}
             href={href}
             className={clsx(
-              "flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#16161A] transition",
-              pathname?.startsWith(href) && "bg-[#16161A] text-fg"
+              "flex items-center gap-3 px-3 py-2 rounded-md hover:bg-elev transition",
+              pathname?.startsWith(href) && "bg-elev text-fg"
             )}
           >
             <Icon className="size-4 text-primary" />

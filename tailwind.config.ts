@@ -1,5 +1,14 @@
 import type { Config } from "tailwindcss";
 
+const withOpacityValue = (variable: string) => {
+  return ({ opacityValue }: { opacityValue?: string }) => {
+    if (opacityValue !== undefined) {
+      return `rgb(var(${variable}) / ${opacityValue})`;
+    }
+    return `rgb(var(${variable}))`;
+  };
+};
+
 const config: Config = {
   darkMode: ["class"],
   content: [
@@ -9,24 +18,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0B0B0C",
-        elev: "#121214",
-        fg: "#FFFFFF",
-        muted: "#8B8D92",
+        bg: withOpacityValue("--color-bg"),
+        elev: withOpacityValue("--color-elev"),
+        fg: withOpacityValue("--color-fg"),
+        muted: withOpacityValue("--color-muted"),
         primary: {
-          DEFAULT: "#F5CA04",
-          50: "#FEF7C9"
+          DEFAULT: withOpacityValue("--color-primary"),
+          50: withOpacityValue("--color-primary-50")
         },
-        border: "#1C1C20"
+        border: withOpacityValue("--color-border")
+      },
+      spacing: {
+        4: "var(--space-4)",
+        6: "var(--space-6)",
+        8: "var(--space-8)",
+        12: "var(--space-12)",
+        16: "var(--space-16)",
+        20: "var(--space-20)",
+        24: "var(--space-24)"
       },
       borderRadius: {
-        sm: "6px",
-        md: "10px",
-        lg: "14px"
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)"
       },
       boxShadow: {
-        card: "0 2px 10px rgba(0,0,0,.25)",
-        focus: "0 0 0 3px rgba(245,202,4,.4)"
+        card: "var(--shadow-card)",
+        focus: "var(--shadow-focus)"
       }
     }
   },
