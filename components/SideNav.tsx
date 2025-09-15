@@ -1,10 +1,10 @@
 
 "use client";
 
-import Link from "next/link";
-import { Lock, SquareGanttChart, ChevronRight } from "lucide-react";
-import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { Lock, SquareGanttChart, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/builder/iapps", label: "My iApps", icon: SquareGanttChart },
