@@ -6,7 +6,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return (
     <input
       className={clsx(
-        "flex h-9 w-full rounded-md border border-border bg-[#16161A] px-3 text-sm outline-none",
+        "flex h-9 w-full rounded-md border border-border bg-elev px-3 text-sm outline-none",
         "focus:shadow-focus",
         className
       )}

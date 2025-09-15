@@ -43,7 +43,7 @@ export default function NewRun() {
               <button
                 key={s.key}
                 onClick={() => setScenario(s.key)}
-                className={`p-4 rounded-md border ${scenario === s.key ? "border-primary bg-[#16161A]" : "border-border bg-elev"} text-left`}
+                className={`p-4 rounded-md border ${scenario === s.key ? "border-primary bg-elev" : "border-border bg-elev"} text-left`}
               >
                 <div className="font-semibold">{s.title}</div>
                 <div className="text-sm text-muted">{s.desc}</div>
@@ -66,7 +66,7 @@ export default function NewRun() {
               <select
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="bg-[#16161A] border border-border rounded-md px-3 py-2"
+                className="bg-elev border border-border rounded-md px-3 py-2"
               >
                 <option>resnet50.onnx</option>
                 <option>bert-base.onnx</option>

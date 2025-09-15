@@ -12,7 +12,7 @@ export function TabsList({ children, value }:{ children:any; value?:string }) {
 export function TabsTrigger({ children, value: tab, setValue, value }:{ children:any; value:string; setValue?:(v:string)=>void; }) {
   const active = (childProps:any) => childProps?.value === value; // noop
   return (
-    <button onClick={()=>setValue?.(value!)} className={clsx("px-3 py-1.5 rounded-md text-sm", (tab===value) && "bg-[#16161A] border border-border")}>
+    <button onClick={()=>setValue?.(value!)} className={clsx("px-3 py-1.5 rounded-md text-sm", (tab===value) && "bg-elev border border-border") }>
       {children}
     </button>
   );
