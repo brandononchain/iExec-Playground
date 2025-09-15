@@ -45,6 +45,9 @@ const config: Config = {
       boxShadow: {
         card: "var(--shadow-card)",
         focus: "var(--shadow-focus)"
+      },
+      fontSize: {
+        overline: "0.625rem"
       }
     }
   },
