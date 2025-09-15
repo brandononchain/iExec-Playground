@@ -1,10 +1,11 @@
 "use client";
 
-import AppShell from "@/components/AppShell";
 import Link from "next/link";
+
+import AppShell from "@/components/AppShell";
+import { ProofBadge } from "@/components/ProofBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProofBadge } from "@/components/ProofBadge";
 import { useStore } from "@/lib/store";
 
 export default function Page() {

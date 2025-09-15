@@ -1,13 +1,14 @@
 "use client";
 
-import AppShell from "@/components/AppShell";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+
+import AppShell from "@/components/AppShell";
 import { EstimatorBanner } from "@/components/EstimatorBanner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { createRun } from "@/lib/api";
 import { useStore, type Scenario } from "@/lib/store";
-import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
 
 const scenarios: { key: Scenario; title: string; desc: string }[] = [
   { key: "healthcare", title: "Healthcare", desc: "Private medical image classifier" },

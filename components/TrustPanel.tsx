@@ -1,4 +1,5 @@
 import { ShieldCheck } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 export function TrustPanel({ proofHash }: { proofHash?: string }) {

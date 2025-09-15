@@ -1,11 +1,12 @@
 "use client";
 
-import AppShell from "@/components/AppShell";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+
+import AppShell from "@/components/AppShell";
 import { TrustPanel } from "@/components/TrustPanel";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { fetchResults, startRun } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
@@ -17,7 +18,7 @@ export default function RunPage() {
 
   useEffect(() => {
     updateRun(id, { status: "running" });
-    (async () => {
+    void (async () => {
       const updates = await startRun(id);
       for (const u of updates) {
         setProgress(u.progress);

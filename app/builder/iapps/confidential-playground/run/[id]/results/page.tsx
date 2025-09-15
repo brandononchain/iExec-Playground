@@ -1,12 +1,13 @@
 "use client";
 
-import AppShell from "@/components/AppShell";
 import { useParams } from "next/navigation";
+
+import AppShell from "@/components/AppShell";
+import { ProofBadge } from "@/components/ProofBadge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
-import { ProofBadge } from "@/components/ProofBadge";
 
 export default function ResultsPage() {
   const { id } = useParams<{ id: string }>();

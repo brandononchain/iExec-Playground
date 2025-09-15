@@ -1,6 +1,6 @@
 "use client";
-import * as React from "react";
 import clsx from "clsx";
+import * as React from "react";
 
 export function Tabs({ defaultValue, children, className }:{ defaultValue:string; children:React.ReactNode; className?:string }) {
   const [value, setValue] = React.useState(defaultValue);
