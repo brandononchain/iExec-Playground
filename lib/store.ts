@@ -11,12 +11,14 @@ export interface Run {
   status: RunStatus;
   estimate: { rlc: number; minutes: number };
   proofHash?: string;
+  resultCid?: string;
 }
 
 export interface RunDraft {
   cid: string;
   iv: string; // base64 IV
   keyJwk: JsonWebKey;
+  name?: string; // original filename (for preview hints)
 }
 
 type State = {

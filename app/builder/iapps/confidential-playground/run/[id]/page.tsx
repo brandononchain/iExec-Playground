@@ -1,34 +1,26 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import AppShell from "@/components/AppShell";
 import { TrustPanel } from "@/components/TrustPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { fetchResults, startRun } from "@/lib/api";
 import { useStore } from "@/lib/store";
+import { useJobPolling } from "@/hooks/useJobPolling";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const updateRun = useStore((s) => s.updateRun);
-  const [progress, setProgress] = useState(0);
+  const { status, progress } = useJobPolling(id);
 
   useEffect(() => {
-    updateRun(id, { status: "running" });
-    void (async () => {
-      const updates = await startRun(id);
-      for (const u of updates) {
-        setProgress(u.progress);
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      const { proofHash } = await fetchResults(id);
-      updateRun(id, { status: "completed", proofHash });
+    if (status === "completed") {
       router.push(`/builder/iapps/confidential-playground/run/${id}/results`);
-    })();
-  }, [id, router, updateRun]);
+    }
+  }, [id, router, status]);
 
   return (
     <AppShell>
