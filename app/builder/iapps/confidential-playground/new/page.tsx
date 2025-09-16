@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useMemo, useState, type ChangeEvent } from "react";
 
 import AppShell from "@/components/AppShell";
 import { EstimatorBanner } from "@/components/EstimatorBanner";
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createRun } from "@/lib/api";
 import { useStore, type Scenario } from "@/lib/store";
+import { encryptFile } from "@/lib/crypto";
+import { getGatewayUrl, putEncryptedBlob } from "@/lib/storage";
+import { Button as UIButton } from "@/components/ui/button";
 
 const scenarios: { key: Scenario; title: string; desc: string }[] = [
   { key: "healthcare", title: "Healthcare", desc: "Private medical image classifier" },
@@ -22,15 +25,53 @@ export default function NewRun() {
   const [scenario, setScenario] = useState<Scenario>("healthcare");
   const [model, setModel] = useState("resnet50.onnx");
   const addRun = useStore((s) => s.addRun);
+  const setRunDraft = useStore((s) => s.setRunDraft);
+  const runDraft = useStore((s) => s.runDraft);
   const router = useRouter();
 
   const estimate = { rlc: 0.5, minutes: 2 };
+
+  type UploadState =
+    | { kind: "idle" }
+    | { kind: "encrypting" }
+    | { kind: "uploading" }
+    | { kind: "uploaded"; cid: string; name: string };
+
+  const [uploadState, setUploadState] = useState<UploadState>({ kind: "idle" });
+
+  const shortCid = useMemo(() => {
+    if (uploadState.kind !== "uploaded") return "";
+    const c = uploadState.cid;
+    return c.length <= 10 ? c : `${c.slice(0, 6)}…${c.slice(-4)}`;
+  }, [uploadState]);
+
+  const copyCid = useCallback(async () => {
+    if (uploadState.kind !== "uploaded") return;
+    await navigator.clipboard.writeText(uploadState.cid);
+  }, [uploadState]);
 
   async function launch() {
     const run = await createRun({ scenario, model, estimate });
     addRun(run);
     router.push(`/builder/iapps/confidential-playground/run/${run.id}`);
   }
+
+  const onFileSelected = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadState({ kind: "encrypting" });
+      const { cipher, meta } = await encryptFile(file);
+      setUploadState({ kind: "uploading" });
+      const encName = `${file.name}.enc`;
+      const cid = await putEncryptedBlob({ cipher, name: encName });
+      setUploadState({ kind: "uploaded", cid, name: encName });
+      setRunDraft({ cid, iv: meta.iv, keyJwk: meta.keyJwk });
+    } catch (err) {
+      console.error(err);
+      setUploadState({ kind: "idle" });
+    }
+  }, [setRunDraft]);
 
   return (
     <AppShell>
@@ -56,9 +97,32 @@ export default function NewRun() {
           <div className="space-y-4">
             <Card className="p-4">
               <div className="font-semibold mb-2">Data</div>
-              <input type="file" className="block text-sm" />
+              <input type="file" className="block text-sm" onChange={onFileSelected} />
               <div className="text-xs text-muted mt-2">
                 Encrypted client-side → TEE → results only.
+              </div>
+              <div className="mt-3 text-sm">
+                {uploadState.kind === "idle" && <span className="text-muted">Select a file to encrypt & upload</span>}
+                {uploadState.kind === "encrypting" && <span>Encrypting…</span>}
+                {uploadState.kind === "uploading" && <span>Uploading…</span>}
+                {uploadState.kind === "uploaded" && (
+                  <div className="flex items-center gap-2">
+                    <span>
+                      Uploaded • CID: <span className="font-mono">{shortCid}</span>
+                    </span>
+                    <UIButton size="sm" variant="secondary" onClick={copyCid}>
+                      Copy
+                    </UIButton>
+                    <a
+                      className="text-primary underline text-xs"
+                      href={getGatewayUrl(uploadState.cid, uploadState.name)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View
+                    </a>
+                  </div>
+                )}
               </div>
             </Card>
             <Card className="p-4">

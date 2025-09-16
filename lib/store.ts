@@ -13,11 +13,19 @@ export interface Run {
   proofHash?: string;
 }
 
+export interface RunDraft {
+  cid: string;
+  iv: string; // base64 IV
+  keyJwk: JsonWebKey;
+}
+
 type State = {
   credits: number;
   runs: Run[];
   addRun: (r: Run) => void;
   updateRun: (id: string, patch: Partial<Run>) => void;
+  runDraft?: RunDraft;
+  setRunDraft: (draft?: RunDraft) => void;
 };
 
 export const useStore = create<State>((set) => ({
@@ -27,6 +35,7 @@ export const useStore = create<State>((set) => ({
   updateRun: (id, patch) =>
     set((s) => ({
       runs: s.runs.map((x) => (x.id === id ? { ...x, ...patch } : x))
-    }))
+    })),
+  setRunDraft: (draft) => set(() => ({ runDraft: draft }))
 }));
 
