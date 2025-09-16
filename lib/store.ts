@@ -11,6 +11,7 @@ export interface Run {
   status: RunStatus;
   estimate: { rlc: number; minutes: number };
   proofHash?: string;
+  resultCid?: string;
 }
 
 export interface RunDraft {
