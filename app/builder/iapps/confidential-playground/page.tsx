@@ -3,6 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState, useEffect, type ChangeEvent } from "react";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 import { EmptyState } from "@/components/EmptyState";
 import AppShell from "@/components/AppShell";
@@ -17,6 +19,7 @@ export default function Page() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isConnected } = useAccount();
 
   const [status, setStatus] = useState<RunStatus | "">((searchParams.get("status") as RunStatus) ?? "");
   const [scenario, setScenario] = useState<Scenario | "">((searchParams.get("scenario") as Scenario) ?? "");
@@ -65,6 +68,20 @@ export default function Page() {
     if (denom === 0) return 0;
     return Math.round((completed / denom) * 100);
   }, [filteredRuns]);
+
+  if (!isConnected) {
+    return (
+      <AppShell>
+        <div className="max-w-3xl mx-auto">
+          <EmptyState
+            title="Connect wallet to start"
+            description="Connect your wallet to run confidential jobs and view your runs."
+            action={<ConnectButton />}
+          />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
