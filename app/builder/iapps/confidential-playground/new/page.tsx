@@ -72,6 +72,13 @@ export default function NewRun() {
       status: job.status as any,
       estimate
     });
+    try {
+      // Mirror encryption meta under job id for later decryption
+      if (runDraft?.iv && runDraft?.keyJwk) {
+        const draft = { iv: runDraft.iv, keyJwk: runDraft.keyJwk, name: runDraft.name };
+        localStorage.setItem(`run-meta:${job.id}`, JSON.stringify(draft));
+      }
+    } catch {}
     router.push(`/builder/iapps/confidential-playground/run/${job.id}`);
   }
 
@@ -85,7 +92,11 @@ export default function NewRun() {
       const encName = `${file.name}.enc`;
       const cid = await putEncryptedBlob({ cipher, name: encName });
       setUploadState({ kind: "uploaded", cid, name: encName });
-      setRunDraft({ cid, iv: meta.iv, keyJwk: meta.keyJwk });
+      setRunDraft({ cid, iv: meta.iv, keyJwk: meta.keyJwk, name: file.name });
+      try {
+        const metaToStore = { iv: meta.iv, keyJwk: meta.keyJwk, name: file.name };
+        localStorage.setItem(`run-meta:${cid}`, JSON.stringify(metaToStore));
+      } catch {}
     } catch (err) {
       console.error(err);
       setUploadState({ kind: "idle" });

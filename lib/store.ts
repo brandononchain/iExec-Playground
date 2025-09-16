@@ -18,6 +18,7 @@ export interface RunDraft {
   cid: string;
   iv: string; // base64 IV
   keyJwk: JsonWebKey;
+  name?: string; // original filename (for preview hints)
 }
 
 type State = {
