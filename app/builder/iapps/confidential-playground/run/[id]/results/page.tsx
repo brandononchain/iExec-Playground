@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AppShell from "@/components/AppShell";
 import { ProofBadge } from "@/components/ProofBadge";
@@ -11,6 +11,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
 import { getGatewayUrl } from "@/lib/storage";
 import { decryptFile, type EncryptionMeta } from "@/lib/crypto";
+import { makeIAppManifest } from "@/lib/iapp";
+import type { Job, RunConfig } from "@/lib/jobs/types";
+import { getDeployUrl } from "@/lib/builder";
 
 type StoredMeta = {
   iv: string;
@@ -28,6 +31,8 @@ export default function ResultsPage() {
   const [plainName, setPlainName] = useState<string | undefined>(undefined);
   const [jsonPreview, setJsonPreview] = useState<unknown | null>(null);
   const [busy, setBusy] = useState<"download" | "decrypt" | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   const storedMetaKey = useMemo(() => (id ? `run-meta:${id}` : undefined), [id]);
 
@@ -95,6 +100,74 @@ export default function ResultsPage() {
     }
   }, [encBlob, loadStoredMeta]);
 
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 2400);
+  }, []);
+
+  const handleExportIApp = useCallback(() => {
+    if (!run) return;
+
+    const job: Job = {
+      id: run.id,
+      status: run.status as any,
+      createdAt: new Date(run.createdAt).toISOString(),
+      proofHash: run.proofHash,
+      resultCid: run.resultCid
+    };
+
+    const runConfig: RunConfig = {
+      scenario: run.scenario,
+      model: run.model,
+      resourceClass: "gpu-small",
+      datasetCid: "TODO",
+      estRlc: run.estimate.rlc,
+      estMins: run.estimate.minutes
+    };
+
+    const manifest = makeIAppManifest(runConfig, job);
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "manifest.json";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast("TODO: POST to Builder endpoint when available");
+  }, [run, showToast]);
+
+  const handleDeployInBuilder = useCallback(() => {
+    if (!run) return;
+
+    const job: Job = {
+      id: run.id,
+      status: run.status as any,
+      createdAt: new Date(run.createdAt).toISOString(),
+      proofHash: run.proofHash,
+      resultCid: run.resultCid
+    };
+
+    const runConfig: RunConfig = {
+      scenario: run.scenario,
+      model: run.model,
+      resourceClass: "gpu-small",
+      datasetCid: "TODO",
+      estRlc: run.estimate.rlc,
+      estMins: run.estimate.minutes
+    };
+
+    const manifest = makeIAppManifest(runConfig, job);
+    const href = getDeployUrl(manifest);
+    window.open(href, "_blank", "noopener,noreferrer");
+  }, [run]);
+
   function renderJsonTable(value: unknown) {
     if (!value || typeof value !== "object") return null;
     const obj = value as Record<string, unknown>;
@@ -145,6 +218,12 @@ export default function ResultsPage() {
             }}
           >
             Copy link
+          </Button>
+          <Button variant="primary" onClick={handleExportIApp}>
+            Export as iApp
+          </Button>
+          <Button variant="secondary" onClick={handleDeployInBuilder}>
+            Deploy in Builder
           </Button>
         </div>
       </div>
@@ -218,6 +297,11 @@ export default function ResultsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-elev border border-border rounded-md shadow px-3 py-2 text-sm">
+          {toast}
+        </div>
+      )}
     </AppShell>
   );
 }
