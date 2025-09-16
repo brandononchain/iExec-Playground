@@ -15,6 +15,7 @@ import { encryptFile } from "@/lib/crypto";
 import { getGatewayUrl, putEncryptedBlob } from "@/lib/storage";
 import { useStore, type Scenario } from "@/lib/store";
 import type { ResourceClass } from "@/lib/jobs/types";
+import { getErrorMessage, toAppErrorCode } from "@/lib/errors";
 
 const scenarios: { key: Scenario; title: string; desc: string }[] = [
   { key: "healthcare", title: "Healthcare", desc: "Private medical image classifier" },
@@ -78,7 +79,7 @@ export default function NewRun() {
       job = await resp.json();
       toast.success("Run submitted", { id: tId });
     } catch (err) {
-      toast.error("Submit failed", { id: tId });
+      toast.error(getErrorMessage(toAppErrorCode(err), "Submit failed"), { id: tId });
       return;
     }
     addRun({
