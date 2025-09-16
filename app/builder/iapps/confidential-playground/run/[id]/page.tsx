@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/store";
 import { useJobPolling } from "@/hooks/useJobPolling";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const updateRun = useStore((s) => s.updateRun);
-  const { status, progress } = useJobPolling(id);
+  const { status, progress, isError } = useJobPolling(id);
 
   useEffect(() => {
     if (status === "completed") {
@@ -27,6 +28,11 @@ export default function RunPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h2 className="text-2xl font-semibold mb-4">Running Confidential Job</h2>
+          {isError && (
+            <div className="mb-3 border border-red-500/30 bg-red-500/10 text-red-400 rounded-md px-3 py-2 text-sm">
+              {getErrorMessage("NETWORK_ERROR")} {/* Polling error default */}
+            </div>
+          )}
           <div className="rounded-md border border-border bg-elev p-6">
             <div className="mb-3 text-sm text-muted">Execution inside TEE GPU</div>
             <Progress value={progress} />

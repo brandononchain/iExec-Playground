@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { RunStatus } from "@/lib/store";
 import { useStore } from "@/lib/store";
@@ -44,6 +45,7 @@ async function fetchWithRetry<T = unknown>(
 
 export function useJobPolling(jobId?: string) {
   const updateRun = useStore((s) => s.updateRun);
+  const lastStatusRef = useRef<RunStatus | undefined>(undefined);
 
   const { data, error, isLoading } = useSWR<JobPollResponse>(
     jobId ? `/api/jobs/${jobId}/poll` : null,
@@ -59,6 +61,12 @@ export function useJobPolling(jobId?: string) {
 
   const status: RunStatus | undefined = data?.status;
 
+  useEffect(() => {
+    if (error) {
+      toast.error("Polling error", { description: String(error) });
+    }
+  }, [error]);
+
   // Provide a user-friendly progress approximation in absence of server-side progress
   const [progress, setProgress] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -66,6 +74,14 @@ export function useJobPolling(jobId?: string) {
 
   useEffect(() => {
     if (!status) return;
+    const prev = lastStatusRef.current;
+    if (status !== prev) {
+      if (status === "pending") toast.info("Run queued", { duration: 1500 });
+      if (status === "running") toast("Run started", { description: "Your confidential job is executing" });
+      if (status === "completed") toast.success("Run completed");
+      if (status === "failed") toast.error("Run failed");
+      lastStatusRef.current = status;
+    }
 
     // Keep store's status in sync for the run
     if (jobId) updateRun(jobId, { status });

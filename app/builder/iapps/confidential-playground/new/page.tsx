@@ -3,6 +3,9 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { toast } from "sonner";
 
 import AppShell from "@/components/AppShell";
 import { EstimatorBanner } from "@/components/EstimatorBanner";
@@ -12,6 +15,7 @@ import { encryptFile } from "@/lib/crypto";
 import { getGatewayUrl, putEncryptedBlob } from "@/lib/storage";
 import { useStore, type Scenario } from "@/lib/store";
 import type { ResourceClass } from "@/lib/jobs/types";
+import { getErrorMessage, toAppErrorCode } from "@/lib/errors";
 
 const scenarios: { key: Scenario; title: string; desc: string }[] = [
   { key: "healthcare", title: "Healthcare", desc: "Private medical image classifier" },
@@ -30,6 +34,12 @@ export default function NewRun() {
   const runDraft = useStore((s) => s.runDraft);
   const router = useRouter();
   const [estimate, setEstimate] = useState<{ rlc: number; minutes: number }>({ rlc: 0.5, minutes: 2 });
+  const { isConnected } = useAccount();
+  const currentChainId = useChainId();
+  const { chains } = useSwitchChain();
+  const expectedChainId = useMemo(() => chains[0]?.id, [chains]);
+  const expectedChainName = useMemo(() => chains[0]?.name ?? "", [chains]);
+  const isWrongChain = useMemo(() => Boolean(expectedChainId && currentChainId && currentChainId !== expectedChainId), [currentChainId, expectedChainId]);
 
   type UploadState =
     | { kind: "idle" }
@@ -57,13 +67,21 @@ export default function NewRun() {
       resourceClass,
       datasetCid: runDraft?.cid
     };
-    const resp = await fetch("/api/jobs/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) throw new Error("Submit failed");
-    const job: { id: string; status: string; createdAt: string } = await resp.json();
+    const tId = toast.loading("Submitting confidential run…");
+    let job: { id: string; status: string; createdAt: string };
+    try {
+      const resp = await fetch("/api/jobs/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!resp.ok) throw new Error("Submit failed");
+      job = await resp.json();
+      toast.success("Run submitted", { id: tId });
+    } catch (err) {
+      toast.error(getErrorMessage(toAppErrorCode(err), "Submit failed"), { id: tId });
+      return;
+    }
     addRun({
       id: job.id,
       scenario,
@@ -124,6 +142,28 @@ export default function NewRun() {
     void fetchEstimate();
     return () => controller.abort();
   }, [step, scenario, model, resourceClass]);
+
+  if (!isConnected) {
+    return (
+      <AppShell>
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-semibold mb-4">New Confidential Run</h2>
+          <div className="">
+            <EstimatorBanner rlc={estimate.rlc} minutes={estimate.minutes} />
+          </div>
+          <div className="mt-6">
+            <div className="max-w-xl">
+              <div className="p-6 border border-border rounded-md bg-elev">
+                <div className="font-medium mb-1">Connect wallet to continue</div>
+                <div className="text-sm text-muted mb-3">You need to connect your wallet to create a confidential run.</div>
+                <ConnectButton />
+              </div>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -233,7 +273,12 @@ export default function NewRun() {
             </Button>
           )}
           {step === 3 && (
-            <Button variant="primary" onClick={launch}>
+            <Button
+              variant="primary"
+              onClick={launch}
+              disabled={isWrongChain}
+              title={isWrongChain && expectedChainName ? `Switch to ${expectedChainName}` : undefined}
+            >
               Launch
             </Button>
           )}

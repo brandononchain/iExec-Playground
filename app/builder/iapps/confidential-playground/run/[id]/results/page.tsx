@@ -14,6 +14,8 @@ import { decryptFile, type EncryptionMeta } from "@/lib/crypto";
 import { makeIAppManifest } from "@/lib/iapp";
 import type { Job, RunConfig } from "@/lib/jobs/types";
 import { getDeployUrl } from "@/lib/builder";
+import { getErrorMessage, toAppErrorCode } from "@/lib/errors";
+import { toast } from "sonner";
 
 type StoredMeta = {
   iv: string;
@@ -49,6 +51,8 @@ export default function ResultsPage() {
     }
   }, [storedMetaKey]);
 
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
   const handleDownloadEncrypted = useCallback(async () => {
     if (!run?.resultCid) return;
     setBusy("download");
@@ -60,7 +64,10 @@ export default function ResultsPage() {
       setEncBlob(blob);
       setEncBytes(blob.size);
     } catch (err) {
-      console.error(err);
+      const code = toAppErrorCode(err);
+      const msg = getErrorMessage(code, "Download failed");
+      setErrorBanner(msg);
+      toast.error(msg);
     } finally {
       setBusy(null);
     }
@@ -93,8 +100,10 @@ export default function ResultsPage() {
         }
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to decrypt. Ensure the key and IV match the ciphertext.");
+      const code = toAppErrorCode(err);
+      const msg = getErrorMessage(code, "Failed to decrypt");
+      setErrorBanner(msg);
+      toast.error(msg);
     } finally {
       setBusy(null);
     }
@@ -206,6 +215,11 @@ export default function ResultsPage() {
 
   return (
     <AppShell>
+      {errorBanner && (
+        <div className="mb-4 border border-red-500/30 bg-red-500/10 text-red-400 rounded-md px-3 py-2 text-sm">
+          {errorBanner}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Results</h2>
         <div className="flex items-center gap-2">
