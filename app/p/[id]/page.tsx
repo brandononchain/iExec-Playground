@@ -1,46 +1,89 @@
-"use client";
+import { type Metadata } from "next";
 
-import { useParams } from "next/navigation";
-
-import AppShell from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useStore } from "@/lib/store";
+import { ProofBadge } from "@/components/ProofBadge";
+import { mockIExecClient } from "@/lib/jobs/mockClient";
 
-export default function PublicProofPage() {
-  const { id } = useParams<{ id: string }>();
-  const run = useStore((s) => s.runs.find((r) => r.id === id));
+type Params = { params: { id: string } };
+
+function shorten(hash?: string) {
+  if (!hash) return "—";
+  return hash.length <= 16 ? hash : `${hash.slice(0, 10)}…${hash.slice(-6)}`;
+}
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = params;
+  let proofHash: string | undefined;
+  try {
+    proofHash = await mockIExecClient.fetchProof(id);
+  } catch {}
+
+  const title = `Confidential Proof • ${shorten(proofHash)}`;
+  const description = proofHash
+    ? `Verification proof for run ${id}: ${shorten(proofHash)}`
+    : `Verification proof for run ${id} is not available yet.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [
+        {
+          url: "/icons/iexec-dot.svg",
+          width: 256,
+          height: 256,
+          alt: "iExec"
+        }
+      ]
+    }
+  };
+}
+
+export default async function PublicProofPage({ params }: Params) {
+  const { id } = params;
+  const job = await mockIExecClient.poll(id);
+  let proofHash: string | undefined;
+  let verifiedAt: Date | undefined;
+  try {
+    proofHash = await mockIExecClient.fetchProof(id);
+    verifiedAt = new Date();
+  } catch {}
 
   return (
-    <AppShell>
-      <div className="max-w-3xl">
-        <h2 className="text-2xl font-semibold mb-4">Public Proof</h2>
+    <div className="min-h-dvh flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl">
+        <h1 className="text-2xl font-semibold mb-4">Public Proof</h1>
         <Card>
           <CardHeader>
-            <CardTitle>Run Metadata</CardTitle>
+            <CardTitle>Confidential Verified</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div>
-              <span className="text-muted">Run ID:</span> <span className="font-mono break-all">{id}</span>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center gap-2">
+              <ProofBadge />
+              <span className="text-muted">Status:</span>
+              <span>{job.status}</span>
             </div>
             <div>
-              <span className="text-muted">Scenario:</span> {run?.scenario ?? "—"}
+              <span className="text-muted">Run ID:</span> <span className="font-mono break-all">{job.id}</span>
             </div>
             <div>
-              <span className="text-muted">Model:</span> {run?.model ?? "—"}
+              <span className="text-muted">Started:</span> {new Date(job.createdAt).toLocaleString()}
             </div>
             <div>
-              <span className="text-muted">Status:</span> {run?.status ?? "—"}
+              <span className="text-muted">Proof Hash:</span> <span className="font-mono break-all">{proofHash ?? "—"}</span>
             </div>
             <div>
-              <span className="text-muted">Proof Hash:</span> <span className="font-mono break-all">{run?.proofHash ?? "—"}</span>
+              <span className="text-muted">Completed:</span> {verifiedAt ? verifiedAt.toLocaleString() : "—"}
+            </div>
+            <div className="text-xs text-muted">
+              This public page shows verification details only. No datasets, keys, or decrypted results are exposed.
             </div>
           </CardContent>
         </Card>
-        <div className="mt-3 text-xs text-muted">
-          No sensitive data is shown on this page. Results remain encrypted and are not displayed.
-        </div>
       </div>
-    </AppShell>
+    </div>
   );
 }
 
