@@ -1,17 +1,17 @@
 "use client";
+/* eslint import/order: off */
 
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 
 import AppShell from "@/components/AppShell";
 import { EstimatorBanner } from "@/components/EstimatorBanner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { createRun } from "@/lib/api";
-import { useStore, type Scenario } from "@/lib/store";
 import { encryptFile } from "@/lib/crypto";
 import { getGatewayUrl, putEncryptedBlob } from "@/lib/storage";
-import { Button as UIButton } from "@/components/ui/button";
+import { useStore, type Scenario } from "@/lib/store";
+import type { ResourceClass } from "@/lib/jobs/types";
 
 const scenarios: { key: Scenario; title: string; desc: string }[] = [
   { key: "healthcare", title: "Healthcare", desc: "Private medical image classifier" },
@@ -24,12 +24,12 @@ export default function NewRun() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [scenario, setScenario] = useState<Scenario>("healthcare");
   const [model, setModel] = useState("resnet50.onnx");
+  const [resourceClass, setResourceClass] = useState<ResourceClass>("gpu-small");
   const addRun = useStore((s) => s.addRun);
   const setRunDraft = useStore((s) => s.setRunDraft);
   const runDraft = useStore((s) => s.runDraft);
   const router = useRouter();
-
-  const estimate = { rlc: 0.5, minutes: 2 };
+  const [estimate, setEstimate] = useState<{ rlc: number; minutes: number }>({ rlc: 0.5, minutes: 2 });
 
   type UploadState =
     | { kind: "idle" }
@@ -51,9 +51,28 @@ export default function NewRun() {
   }, [uploadState]);
 
   async function launch() {
-    const run = await createRun({ scenario, model, estimate });
-    addRun(run);
-    router.push(`/builder/iapps/confidential-playground/run/${run.id}`);
+    const body = {
+      scenario,
+      model,
+      resourceClass,
+      datasetCid: runDraft?.cid
+    };
+    const resp = await fetch("/api/jobs/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error("Submit failed");
+    const job: { id: string; status: string; createdAt: string } = await resp.json();
+    addRun({
+      id: job.id,
+      scenario,
+      model,
+      createdAt: Date.parse(job.createdAt),
+      status: job.status as any,
+      estimate
+    });
+    router.push(`/builder/iapps/confidential-playground/run/${job.id}`);
   }
 
   const onFileSelected = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +91,28 @@ export default function NewRun() {
       setUploadState({ kind: "idle" });
     }
   }, [setRunDraft]);
+
+  useEffect(() => {
+    if (step !== 2) return;
+    const controller = new AbortController();
+    const fetchEstimate = async () => {
+      try {
+        const resp = await fetch("/api/jobs/estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenario, model, resourceClass }),
+          signal: controller.signal
+        });
+        if (!resp.ok) return;
+        const data: { rlc: number; minutes: number } = await resp.json();
+        setEstimate(data);
+      } catch {
+        // ignore
+      }
+    };
+    void fetchEstimate();
+    return () => controller.abort();
+  }, [step, scenario, model, resourceClass]);
 
   return (
     <AppShell>
@@ -110,9 +151,9 @@ export default function NewRun() {
                     <span>
                       Uploaded • CID: <span className="font-mono">{shortCid}</span>
                     </span>
-                    <UIButton size="sm" variant="secondary" onClick={copyCid}>
+                    <Button variant="secondary" onClick={copyCid}>
                       Copy
-                    </UIButton>
+                    </Button>
                     <a
                       className="text-primary underline text-xs"
                       href={getGatewayUrl(uploadState.cid, uploadState.name)}
@@ -137,6 +178,18 @@ export default function NewRun() {
                 <option>tabular-xgb.bin</option>
               </select>
             </Card>
+            <Card className="p-4">
+              <div className="font-semibold mb-2">Resource</div>
+              <select
+                value={resourceClass}
+                onChange={(e) => setResourceClass(e.target.value as ResourceClass)}
+                className="bg-elev border border-border rounded-md px-3 py-2"
+              >
+                <option value="gpu-small">GPU Small</option>
+                <option value="gpu-standard">GPU Standard</option>
+                <option value="gpu-high">GPU High</option>
+              </select>
+            </Card>
             <EstimatorBanner rlc={estimate.rlc} minutes={estimate.minutes} />
           </div>
         )}
@@ -150,18 +203,21 @@ export default function NewRun() {
             <div className="text-sm text-muted">
               Model: <span className="text-fg">{model}</span>
             </div>
+            <div className="text-sm text-muted">
+              Resource: <span className="text-fg">{resourceClass}</span>
+            </div>
             <EstimatorBanner rlc={estimate.rlc} minutes={estimate.minutes} />
           </Card>
         )}
 
         <div className="mt-6 flex gap-3">
           {step > 1 && (
-            <Button variant="secondary" onClick={() => setStep((s) => ((s - 1) as any))}>
+            <Button variant="secondary" onClick={() => setStep((s: 1 | 2 | 3) => ((s - 1) as 1 | 2 | 3))}>
               Back
             </Button>
           )}
           {step < 3 && (
-            <Button variant="primary" onClick={() => setStep((s) => ((s + 1) as any))}>
+            <Button variant="primary" onClick={() => setStep((s: 1 | 2 | 3) => ((s + 1) as 1 | 2 | 3))}>
               Continue
             </Button>
           )}

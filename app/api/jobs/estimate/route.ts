@@ -10,7 +10,7 @@ const estimateSchema = z.object({
   scenario: z.string().min(1),
   model: z.string().min(1),
   resourceClass: z.enum(["gpu-small", "gpu-standard", "gpu-high"]).default("gpu-small"),
-  datasetCid: z.string().min(1)
+  datasetCid: z.string().optional()
 });
 
 export async function POST(req: Request) {
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       scenario: input.scenario,
       model: input.model,
       resourceClass: input.resourceClass,
-      datasetCid: input.datasetCid,
+      datasetCid: input.datasetCid ?? "",
       estRlc: est.rlc,
       estMins: est.minutes
     };
