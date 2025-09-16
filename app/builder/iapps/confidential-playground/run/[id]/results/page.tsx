@@ -13,6 +13,7 @@ import { getGatewayUrl } from "@/lib/storage";
 import { decryptFile, type EncryptionMeta } from "@/lib/crypto";
 import { makeIAppManifest } from "@/lib/iapp";
 import type { Job, RunConfig } from "@/lib/jobs/types";
+import { getDeployUrl } from "@/lib/builder";
 
 type StoredMeta = {
   iv: string;
@@ -142,6 +143,31 @@ export default function ResultsPage() {
     showToast("TODO: POST to Builder endpoint when available");
   }, [run, showToast]);
 
+  const handleDeployInBuilder = useCallback(() => {
+    if (!run) return;
+
+    const job: Job = {
+      id: run.id,
+      status: run.status as any,
+      createdAt: new Date(run.createdAt).toISOString(),
+      proofHash: run.proofHash,
+      resultCid: run.resultCid
+    };
+
+    const runConfig: RunConfig = {
+      scenario: run.scenario,
+      model: run.model,
+      resourceClass: "gpu-small",
+      datasetCid: "TODO",
+      estRlc: run.estimate.rlc,
+      estMins: run.estimate.minutes
+    };
+
+    const manifest = makeIAppManifest(runConfig, job);
+    const href = getDeployUrl(manifest);
+    window.open(href, "_blank", "noopener,noreferrer");
+  }, [run]);
+
   function renderJsonTable(value: unknown) {
     if (!value || typeof value !== "object") return null;
     const obj = value as Record<string, unknown>;
@@ -195,6 +221,9 @@ export default function ResultsPage() {
           </Button>
           <Button variant="primary" onClick={handleExportIApp}>
             Export as iApp
+          </Button>
+          <Button variant="secondary" onClick={handleDeployInBuilder}>
+            Deploy in Builder
           </Button>
         </div>
       </div>
